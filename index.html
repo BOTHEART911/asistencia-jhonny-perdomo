@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Gestión de Asistencia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root{
+      --primary:#007BFF;
+      --primary-2:#0056b3;
+      --ok:#16a34a;
+      --error:#dc2626;
+      --scrim:rgba(0,0,0,.35);
+    }
+    html,body{
+      margin:0; padding:0; height:100%; width:100%;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:#111; background:#f7fafc;
+    }
+    .container{ max-width: 960px; margin: 0 auto; padding: 16px; }
+    .view{ display:none; min-height: calc(100dvh - 32px); }
+    .view.active{ display:block; }
+    .card{
+      background:#fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      box-shadow: 0 8px 18px rgba(0,0,0,.05);
+      max-width: 560px; margin: 16px auto; padding: 16px;
+    }
+    h1,h2{ margin: 8px 0 12px; text-align:center; color:var(--primary); }
+    p.helper{ color:#666; font-size:.95rem; text-align:center; margin:8px 0 16px; }
+    label{ display:block; font-weight:700; margin: 10px 0 6px; color:#0f172a; }
+    input, select, textarea, button{
+      width:100%; padding:12px; box-sizing:border-box;
+      border:1.5px solid #cbd5e1; border-radius:8px; background:#fff;
+      outline:none; transition: border-color .2s ease, transform .08s ease;
+      font-size:16px;
+    }
+    input:focus, select:focus, textarea:focus{ border-color:var(--primary); }
+    textarea{ resize:vertical; }
+    button{
+      cursor:pointer; border:2px solid var(--primary);
+      background:#fff; color:#000; font-weight:700;
+    }
+    button:hover{ background:var(--primary-2); color:#fff; border-color:var(--primary-2); }
+    .btn-primary{ background:var(--primary); color:#fff; }
+    .btn-row{ display:flex; gap:12px; }
+    .btn-row > *{ flex:1; }
+    .muted{ color:#666; font-size:.9rem; }
+    .hidden{ display:none !important; }
+    .narrow{ max-width: 520px; margin: 0 auto; }
+    .spaced{ margin-top:12px; }
+    @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
+
+    /* Loader centrado */
+    .loader{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.35);
+      z-index:9999; backdrop-filter: blur(2px);
+      opacity:1; transition: opacity .12s ease;
+    }
+    .loader.hidden{ opacity:0; pointer-events:none; }
+    .spinner{
+      width:56px; height:56px; border:6px solid #fff; border-top-color: transparent;
+      border-radius:50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <!-- Loader -->
+  <div id="loader" class="loader hidden" aria-live="polite" aria-busy="true">
+    <div class="spinner" role="status" aria-label="Cargando"></div>
+  </div>
+
+  <div class="container">
+    <!-- VISTA: LOGIN -->
+    <section id="view-login" class="view active">
+      <div class="card">
+        <h1>Gestión de Asistencia</h1>
+        <p class="helper"><b>Al usar este aplicativo, aceptas voluntariamente suministrar tus datos personales.</b><br><i>Art. 5 Ley 1581 de 2012 y Decreto 1074 de 2015</i></p>
+
+        <label>Documento</label>
+        <input id="doc-login" type="tel" inputmode="numeric" placeholder="Sin puntos ni espacios (6 a 10 dígitos)" />
+
+        <div class="btn-row spaced">
+          <button class="btn-primary" id="btn-login">Iniciar Sesión</button>
+          <button id="btn-limpiar">Limpiar</button>
+        </div>
+      </div>
+
+      <!-- REGISTRO (solo si no existe) -->
+      <div id="registro-card" class="card" style="display:none;">
+        <h2>Nuevo Usuario</h2>
+        <div class="narrow">
+          <label>Nombre Completo</label>
+          <input id="reg-nombre" type="text" placeholder="Ingresa tu Nombre completo" />
+
+          <label>Whatsapp</label>
+          <input id="reg-telefono" type="tel" inputmode="numeric" placeholder="10 dígitos" />
+
+          <label>Barrio, Vereda o Conjunto de Residencia</label>
+          <select id="reg-residencia">
+            <option value="" disabled selected>Selecciona tu Residencia</option>
+            <option value="ACAPULCO I">ACAPULCO I</option>
+            <option value="ACAPULCO II">ACAPULCO II</option>
+            <option value="AGUAMARINA">AGUAMARINA</option>
+            <option value="ALCALA I">ALCALA I</option>
+            <option value="ALFONSO LÓPEZ">ALFONSO LÓPEZ</option>
+            <option value="ALTAGRACIA I">ALTAGRACIA I</option>
+            <option value="ALTAGRACIA II">ALTAGRACIA II</option>
+            <option value="ALTAGRACIA IV">ALTAGRACIA IV</option>
+            <option value="APROVITEF">APROVITEF</option>
+            <option value="ARAGON I">ARAGON I</option>
+            <option value="ARAGON II">ARAGON II</option>
+            <option value="ARAGON III">ARAGON III</option>
+            <option value="ARAGON IV">ARAGON IV</option>
+            <option value="ARBOLEDA I">ARBOLEDA I</option>
+            <option value="ARBOLEDA II">ARBOLEDA II</option>
+            <option value="BALCONES DE ALEJANDRIA">BALCONES DE ALEJANDRIA</option>
+            <option value="BILBAO">BILBAO</option>
+            <option value="CALA I">CALA I</option>
+            <option value="CANALES">CANALES</option>
+            <option value="CANCUN">CANCUN</option>
+            <option value="CAMALA">CAMALA</option>
+            <option value="CASA DEL SOL I">CASA DEL SOL I</option>
+            <option value="CASA DEL SOL II">CASA DEL SOL II</option>
+            <option value="CENTRO">CENTRO</option>
+            <option value="COLEGIO I">COLEGIO I</option>
+            <option value="COLEGIO II">COLEGIO II</option>
+            <option value="COLEGIO III">COLEGIO III</option>
+            <option value="DUBAI">DUBAI</option>
+            <option value="EL PORTAL DEL RUBI">EL PORTAL DEL RUBI</option>
+            <option value="GAITAN">GAITAN</option>
+            <option value="HANGARES">HANGARES</option>
+            <option value="INVASION BRISAS DEL CARMEN">INVASION BRISAS DEL CARMEN</option>
+            <option value="INVASION VILLA MAGDALENA">INVASION VILLA MAGDALENA</option>
+            <option value="INVASION VILLA MARIANA">INVASION VILLA MARIANA</option>
+            <option value="IQUEIMA">IQUEIMA</option>
+            <option value="JARDINES DE BABILONIA">JARDINES DE BABILONIA</option>
+            <option value="LA CAPILLA">LA CAPILLA</option>
+            <option value="LA CEIBA">LA CEIBA</option>
+            <option value="LA ESPERANZA">LA ESPERANZA</option>
+            <option value="LA PAZ">LA PAZ</option>
+            <option value="LA UNION">LA UNION</option>
+            <option value="LAS ROSAS">LAS ROSAS</option>
+            <option value="LAS VILLAS">LAS VILLAS</option>
+            <option value="LIBERTADOR">LIBERTADOR</option>
+            <option value="LLERAS">LLERAS</option>
+            <option value="LOS MANGOS I">LOS MANGOS I</option>
+            <option value="LOS MANGOS II">LOS MANGOS II</option>
+            <option value="LOS MANGOS III">LOS MANGOS III</option>
+            <option value="LOS MANGOS IV">LOS MANGOS IV</option>
+            <option value="LOS MANGOS V">LOS MANGOS V</option>
+            <option value="LOS MANGOS VI">LOS MANGOS VI</option>
+            <option value="LOS MANGOS VII">LOS MANGOS VII</option>
+            <option value="LOS PIJAOS">LOS PIJAOS</option>
+            <option value="MIRADOR DE LA ESPERANZA">MIRADOR DE LA ESPERANZA</option>
+            <option value="MIRADOR DEL SOL">MIRADOR DEL SOL</option>
+            <option value="MONACO">MONACO</option>
+            <option value="OBRERO">OBRERO</option>
+            <option value="OBRERO DELIRIO">OBRERO DELIRIO</option>
+            <option value="ORQUÍDEAS I">ORQUÍDEAS I</option>
+            <option value="ORQUÍDEAS II">ORQUÍDEAS II</option>
+            <option value="ORQUÍDEAS REAL I">ORQUÍDEAS REAL I</option>
+            <option value="ORQUÍDEAS REAL II">ORQUÍDEAS REAL II</option>
+            <option value="ORQUÍDEAS REAL III">ORQUÍDEAS REAL III</option>
+            <option value="ORQUÍDEAS REAL IV">ORQUÍDEAS REAL IV</option>
+            <option value="PARADERO I">PARADERO I</option>
+            <option value="PARADERO II">PARADERO II</option>
+            <option value="PARAISO">PARAISO</option>
+            <option value="PAKISTAN I">PAKISTAN I</option>
+            <option value="PAKISTAN II">PAKISTAN II</option>
+            <option value="PAKISTAN III">PAKISTAN III</option>
+            <option value="PALO VERDE">PALO VERDE</option>
+            <option value="PARQUES DE ALEJANDRIA I">PARQUES DE ALEJANDRIA I</option>
+            <option value="PARQUES DE ALEJANDRIA II">PARQUES DE ALEJANDRIA II</option>
+            <option value="PARQUES DE ALEJANDRIA III">PARQUES DE ALEJANDRIA III</option>
+            <option value="PARQUES DE ALEJANDRIA IV">PARQUES DE ALEJANDRIA IV</option>
+            <option value="PARQUES DE PAKISTAN I">PARQUES DE PAKISTAN I</option>
+            <option value="PARQUES DE PAKISTAN II">PARQUES DE PAKISTAN II</option>
+            <option value="PARQUES DE PAKISTAN III">PARQUES DE PAKISTAN III</option>
+            <option value="PARQUES DE PAKISTAN IV">PARQUES DE PAKISTAN IV</option>
+            <option value="PARQUES DE PAKISTAN V">PARQUES DE PAKISTAN V</option>
+            <option value="PORTAL DEL RUBY">PORTAL DEL RUBY</option>
+            <option value="PRADERAS DE PALMA REAL">PRADERAS DE PALMA REAL</option>
+            <option value="PRADOS DE SAN REMO">PRADOS DE SAN REMO</option>
+            <option value="PUERTA BLANCA">PUERTA BLANCA</option>
+            <option value="PUERTO BAHIA I">PUERTO BAHIA I</option>
+            <option value="PUERTO BAHIA II">PUERTO BAHIA II</option>
+            <option value="PUERTO DOMINGO">PUERTO DOMINGO</option>
+            <option value="PUERTO MEDITERRANEO">PUERTO MEDITERRANEO</option>
+            <option value="QUINTAS DE SAN ESTEBAN">QUINTAS DE SAN ESTEBAN</option>
+            <option value="QUINTAS DE SAN FRANCISCO">QUINTAS DE SAN FRANCISCO</option>
+            <option value="QUINTAS DEL DIVINO NIÑO">QUINTAS DEL DIVINO NIÑO</option>
+            <option value="QUINTAS FERROVIARIAS">QUINTAS FERROVIARIAS</option>
+            <option value="RIVERAS DEL MAGDALENA">RIVERAS DEL MAGDALENA</option>
+            <option value="SAN ANDRES">SAN ANDRES</option>
+            <option value="SAN FELIPE DE BARAJAS">SAN FELIPE DE BARAJAS</option>
+            <option value="SAN FEMANDO DE SEGOVIA">SAN FEMANDO DE SEGOVIA</option>
+            <option value="SAN FRANCISCO">SAN FRANCISCO</option>
+            <option value="SAN LUIS">SAN LUIS</option>
+            <option value="SANTA ANA">SANTA ANA</option>
+            <option value="SANTA HAGIA SOTA">SANTA HAGIA SOTA</option>
+            <option value="SANTA MARTHA">SANTA MARTHA</option>
+            <option value="SANTA MONICA I">SANTA MONICA I</option>
+            <option value="SANTA MONICA II">SANTA MONICA II</option>
+            <option value="SINAI">SINAI</option>
+            <option value="SOL Y BRISA">SOL Y BRISA</option>
+            <option value="TARQUI">TARQUI</option>
+            <option value="TAYRONA">TAYRONA</option>
+            <option value="TERRAZAS DE ALEJANDRIA">TERRAZAS DE ALEJANDRIA</option>
+            <option value="TOPACIO">TOPACIO</option>
+            <option value="TRIANA">TRIANA</option>
+            <option value="URBANIZACION ARRAYANES">URBANIZACION ARRAYANES</option>
+            <option value="URBANIZACION EL PALMAR">URBANIZACION EL PALMAR</option>
+            <option value="URBANIZACION EL PORTAL">URBANIZACION EL PORTAL</option>
+            <option value="URBANIZACION EL RUBY">URBANIZACION EL RUBY</option>
+            <option value="URBANIZACION LOS ALMENDROS">URBANIZACION LOS ALMENDROS</option>
+            <option value="URBANIZACION VILLA LUCIA">URBANIZACION VILLA LUCIA</option>
+            <option value="URBANIZACION VILLA MAGDALENA I">URBANIZACION VILLA MAGDALENA I</option>
+            <option value="URBANIZACION VILLA MAGDALENA II">URBANIZACION VILLA MAGDALENA II</option>
+            <option value="URBANIZACION VILLA MAGDALENA III">URBANIZACION VILLA MAGDALENA III</option>
+            <option value="URBANIZACION VILLA MARIANA">URBANIZACIÓN VILLA MARIANA</option>
+            <option value="VALLESUE">VALLESUE</option>
+            <option value="VENECIA I">VENECIA I</option>
+            <option value="VENECIA II">VENECIA II</option>
+            <option value="VENECIA III">VENECIA III</option>
+            <option value="VENECIA IV">VENECIA IV</option>
+            <option value="VILLA DE LAS PALMAS">VILLA DE LAS PALMAS</option>
+            <option value="VILLA DEL RIO I">VILLA DEL RIO I</option>
+            <option value="VILLA DEL RIO II">VILLA DEL RIO II</option>
+            <option value="VILLA DEL SOL">VILLA DEL SOL</option>
+            <option value="VILLA ESPERANZA">VILLA ESPERANZA</option>
+            <option value="VILLA LAS PALMAS">VILLA LAS PALMAS</option>
+            <option value="VILLA MEDINA">VILLA MEDINA</option>
+            <option value="VILLAS DEL MEDITERANEO">VILLAS DEL MEDITERANEO</option>
+          </select>
+
+          <!-- Campo Referido (opcional) -->
+          <div id="reg-referido-wrap" style="display:none;">
+            <label>N° Referido</label>
+            <input id="reg-referencia" type="tel" inputmode="numeric" placeholder="N° de Referido (opcional)" />
+          </div>
+          <div class="btn-row">
+            <button id="btn-ref-mas">Si eres Referido</button>
+            <button id="btn-ref-menos" class="hidden">No soy Referido</button>
+          </div>
+
+          <div class="btn-row spaced">
+            <button class="btn-primary" id="btn-guardar-registro">Guardar</button>
+            <button id="btn-reg-atras">Atrás</button>
+          </div>
+          <p class="center muted spaced"><b>Revisa la información antes de guardar.</b></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA: ASISTENCIA -->
+    <section id="view-asistencia" class="view">
+      <div class="card narrow">
+        <h2>Registrar Asistencia</h2>
+        <input id="a-documento" type="hidden" />
+        <input id="a-telefono" type="hidden" />
+        <input id="a-residencia" type="hidden" />
+
+        <label>Nombre (solo lectura)</label>
+        <input id="a-nombre" type="text" readonly placeholder="Tu Nombre" />
+
+        <label>N° de Reunión</label>
+        <input id="a-reunion" type="tel" inputmode="numeric" placeholder="N° de Reunión" />
+
+        <div id="evento-wrap" style="display:none;">
+          <label>Nombre de Evento</label>
+          <input id="a-evento" type="text" readonly>
+        </div>
+
+        <div class="btn-row spaced">
+          <button class="btn-primary" id="a-guardar">Guardar</button>
+          <button id="a-volver">Atrás</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // REEMPLAZA con la URL de tu Web App desplegada (Implementar -> Desplegar -> Nueva implementación)
+    const API_BASE = 'REEMPLAZA_CON_URL_WEB_APP';
+
+    // Loader
+    const loader = document.getElementById('loader');
+    let loadingCount = 0, loaderTimer = null;
+    function startLoading(){
+      loadingCount++;
+      if (loadingCount === 1){
+        loaderTimer = setTimeout(()=>{ loader.classList.remove('hidden'); loaderTimer=null; }, 120);
+      }
+    }
+    function stopLoading(){
+      if (loadingCount === 0) return;
+      loadingCount--;
+      if (loadingCount === 0){
+        if (loaderTimer){ clearTimeout(loaderTimer); loaderTimer=null; }
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Fetch helpers
+    async function apiGet(action, params = {}){
+      startLoading();
+      try{
+        const url = new URL(API_BASE);
+        url.search = new URLSearchParams({ action, ...params }).toString();
+        const r = await fetch(url.toString(), { method: 'GET' });
+        const j = await r.json();
+        if(!j.ok) throw new Error(j.error || 'Error');
+        return j.data;
+      } finally { stopLoading(); }
+    }
+    async function apiPost(action, body = {}){
+      startLoading();
+      try{
+        const url = API_BASE + '?action=' + encodeURIComponent(action);
+        const r = await fetch(url, {
+          method:'POST',
+          headers: { 'Content-Type':'text/plain;charset=utf-8' },
+          body: JSON.stringify(body)
+        });
+        const j = await r.json();
+        if(!j.ok) throw new Error(j.error || 'Error');
+        return j.data;
+      } finally { stopLoading(); }
+    }
+
+    // Estado
+    let currentUser = null;
+
+    // Helpers de vistas
+    function showView(id){
+      for(const el of document.querySelectorAll('.view')) el.classList.remove('active');
+      document.getElementById(id).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Choices (select con filtro)
+    let choicesReg = null;
+    function initChoices(){
+      if(choicesReg) choicesReg.destroy();
+      const regSel = document.getElementById('reg-residencia');
+      if(regSel){
+        choicesReg = new Choices(regSel, {
+          searchEnabled: true, itemSelectText: '', shouldSort:false,
+          placeholder: true, placeholderValue: 'Selecciona tu Residencia',
+          searchPlaceholderValue: 'Escribe para filtrar'
+        });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', initChoices);
+
+    // LOGIN
+    const btnLogin = document.getElementById('btn-login');
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    const docLogin = document.getElementById('doc-login');
+    const regCard = document.getElementById('registro-card');
+
+    btnLimpiar.addEventListener('click', ()=>{
+      docLogin.value = '';
+      regCard.style.display = 'none';
+    });
+
+    btnLogin.addEventListener('click', async () => {
+      const documento = (docLogin.value || '').trim();
+
+      if (documento === '') {
+        Swal.fire({
+          icon: 'question',
+          title: '¿Deseas comenzar?',
+          text: 'Ingresa un Documento para validar.',
+          timer: 3000,
+          width: '80%',
+          padding: '1rem',
+        });
+        return;
+      }
+      if (!/^\d{6,10}$/.test(documento)) {
+        Swal.fire({ icon:'warning', title:'Documento inválido', text:'Ingresa de 6 a 10 dígitos.' });
+        return;
+      }
+
+      try {
+        const res = await apiGet('validarDocumento', { documento });
+        if (res && res.existe) {
+          // Cargar asistencia directo
+          currentUser = {
+            documento: res.documento,
+            nombre: res.nombre,
+            telefono: res.telefono || '',
+            residencia: res.residencia || ''
+          };
+          await prepararAsistencia();
+          showView('view-asistencia');
+        } else {
+          // Mostrar registro
+          regCard.style.display = '';
+          Swal.fire({ icon:'info', title:'Nuevo usuario', text:'Completa tu registro para continuar.' });
+        }
+      } catch (e) {
+        Swal.fire({ icon:'error', title:'Error', text:e.message });
+      }
+    });
+
+    // Toggle Referido (registro)
+    const regRefWrap = document.getElementById('reg-referido-wrap');
+    const btnRefMas = document.getElementById('btn-ref-mas');
+    const btnRefMenos = document.getElementById('btn-ref-menos');
+    btnRefMas.addEventListener('click', (ev)=>{ ev.preventDefault(); regRefWrap.style.display=''; btnRefMas.classList.add('hidden'); btnRefMenos.classList.remove('hidden'); });
+    btnRefMenos.addEventListener('click', (ev)=>{ ev.preventDefault(); regRefWrap.style.display='none'; btnRefMas.classList.remove('hidden'); btnRefMenos.classList.add('hidden'); document.getElementById('reg-referencia').value=''; });
+
+    // Botón Atrás en registro: oculta el formulario
+    document.getElementById('btn-reg-atras').addEventListener('click', (e)=>{
+      e.preventDefault();
+      regCard.style.display='none';
+    });
+
+    // Guardar Registro con Resumen
+    document.getElementById('btn-guardar-registro').addEventListener('click', async ()=>{
+      const documento = (docLogin.value || '').trim();
+      const formData = {
+        documento,
+        nombre: document.getElementById('reg-nombre').value.trim(),
+        telefono: document.getElementById('reg-telefono').value.trim(),
+        residencia: document.getElementById('reg-residencia').value,
+        referencia: (document.getElementById('reg-referencia').value || '').trim()
+      };
+      const documentoRegex = /^(?:[0-9]{6,9}|1[0-9]{9})$/;
+      const telefonoRegex = /^[0-9]{10}$/;
+      const referenciaRegex = /^[0-9]{1,3}$/;
+
+      if (!formData.nombre || !formData.documento || !formData.telefono) {
+        return Swal.fire({ icon:'warning', title:'Faltan campos Requeridos', text:'Completa Nombre, Documento y Whatsapp.' });
+      }
+      const nombrePalabras = formData.nombre.split(/\s+/).filter(Boolean);
+      if (nombrePalabras.length < 2) {
+        return Swal.fire({ icon:'warning', title:'Nombre incompleto', text:'Ingresa tu nombre completo (mínimo nombre y apellido).' });
+      }
+      if (!documentoRegex.test(formData.documento)) {
+        return Swal.fire({ icon:'warning', title:'Documento inválido', text:'Revisa el número de documento.' });
+      }
+      if (!telefonoRegex.test(formData.telefono)) {
+        return Swal.fire({ icon:'warning', title:'Whatsapp inválido', text:'Debe tener exactamente 10 dígitos.' });
+      }
+      if (formData.referencia && !referenciaRegex.test(formData.referencia)) {
+        return Swal.fire({ icon:'warning', title:'Referido inválido', text:'Debe tener 1 a 3 dígitos.' });
+      }
+
+      const resumenHtml = `
+        <b>Nombre:</b> ${formData.nombre}<br>
+        <b>N° Documento:</b> ${formData.documento}<br>
+        <b>Whatsapp:</b> ${formData.telefono}<br>
+        <b>Residencia:</b> ${formData.residencia}<br>
+        <b>Referido:</b> ${formData.referencia || 'No Registras'}
+      `;
+      const rs = await Swal.fire({
+        icon:'info', title:'Resumen de Registro', html:resumenHtml,
+        showCancelButton:true, confirmButtonText:'Confirmar', cancelButtonText:'Editar',
+        width:'80%',
+      });
+      if(!rs.isConfirmed) return;
+
+      try{
+        const r = await apiPost('guardarContactoEnServidor', formData);
+        if(r && r.success){
+          // Revalidar y pasar a asistencia
+          const res = await apiGet('validarDocumento', { documento: formData.documento });
+          if(res?.existe){
+            currentUser = {
+              documento: res.documento,
+              nombre: res.nombre,
+              telefono: res.telefono || '',
+              residencia: res.residencia || ''
+            };
+            await Swal.fire({ icon:'success', title:'Registro exitoso', timer:1600, showConfirmButton:false });
+            regCard.style.display='none';
+            await prepararAsistencia();
+            showView('view-asistencia');
+          }else{
+            Swal.fire({ icon:'error', title:'No se pudo completar el registro' });
+          }
+        }else{
+          Swal.fire({ icon:'error', title:'Error al guardar', html: r?.message || 'Error desconocido' });
+        }
+      }catch(e){
+        Swal.fire({ icon:'error', title:'Error', text:e.message });
+      }
+    });
+
+    // ASISTENCIA
+    async function prepararAsistencia(){
+      if(!currentUser) return;
+      try{
+        // Reconsultar para traer nombre/telefono/residencia actualizados
+        const d = await apiGet('validarDocumento', { documento: currentUser.documento });
+        if(d && d.existe){
+          currentUser = {
+            documento: d.documento,
+            nombre: d.nombre || '',
+            telefono: d.telefono || '',
+            residencia: d.residencia || ''
+          };
+        }
+      }catch(_){}
+
+      document.getElementById('a-documento').value = currentUser.documento || '';
+      document.getElementById('a-nombre').value = currentUser.nombre || '';
+      document.getElementById('a-telefono').value = currentUser.telefono || '';
+      document.getElementById('a-residencia').value = currentUser.residencia || '';
+      document.getElementById('a-reunion').value = '';
+      document.getElementById('a-evento').value = '';
+      document.getElementById('evento-wrap').style.display='none';
+    }
+
+    document.getElementById('a-reunion').addEventListener('input', async (e)=>{
+      const val = (e.target.value||'').trim();
+      if(!val){
+        document.getElementById('evento-wrap').style.display='none';
+        return;
+      }
+      try{
+        const r = await apiGet('validarReunion', { reunion: val });
+        document.getElementById('a-evento').value = r?.evento || '';
+        document.getElementById('evento-wrap').style.display='';
+      }catch{}
+    });
+
+    document.getElementById('a-guardar').addEventListener('click', async ()=>{
+      const body = {
+        documento: document.getElementById('a-documento').value.trim(),
+        nombre: document.getElementById('a-nombre').value.trim(),
+        telefono: document.getElementById('a-telefono').value.trim(),
+        reunion: document.getElementById('a-reunion').value.trim(),
+        evento: document.getElementById('a-evento').value.trim()
+      };
+      const documentoRegex = /^[0-9]{6,10}$/;
+      const reunionRegex = /^[0-9]{1,3}$/;
+
+      if(!documentoRegex.test(body.documento)){
+        return Swal.fire({icon:'warning',title:'Documento inválido'});
+      }
+      if(!reunionRegex.test(body.reunion)){
+        return Swal.fire({icon:'warning',title:'N° de Evento inválido'});
+      }
+
+      try{
+        const r = await apiPost('guardarAsistenciaEnServidor', body);
+        if(r && r.success){
+          await Swal.fire({ icon:'success', title:'Asistencia registrada', timer:1500, showConfirmButton:false });
+          // Regresar al login tras guardar
+          showView('view-login');
+        }else{
+          Swal.fire({ icon:'info', title:'Atención', html: r?.message || 'No se pudo registrar' });
+        }
+      }catch(e){
+        Swal.fire({ icon:'info', title:'Atención', text:e.message });
+      }
+    });
+
+    document.getElementById('a-volver').addEventListener('click', ()=> showView('view-login'));
+  </script>
+</body>
+</html>
