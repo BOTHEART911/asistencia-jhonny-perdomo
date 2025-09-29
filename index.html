@@ -4,9 +4,13 @@
   <meta charset="utf-8" />
   <title>Gestión de Asistencia</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Favicon -->
+  <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1753538807/JHONNY_PERDOMO_dn3dah.png">
+  <!-- Choices (select con búsqueda) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root{
@@ -18,28 +22,35 @@
     }
     html,body{
       margin:0; padding:0; height:100%; width:100%;
+      overflow-x:hidden;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:#111; background:#f7fafc;
+      color:#111;
+      background: url('https://res.cloudinary.com/dqqeavica/image/upload/v1753538930/FONDO_JHONNY_sugwsj.png') center/cover fixed no-repeat;
     }
-    .container{ max-width: 960px; margin: 0 auto; padding: 16px; }
-    .view{ display:none; min-height: calc(100dvh - 32px); }
-    .view.active{ display:block; }
+    .container{ max-width: 1000px; margin: 0 auto; padding: 16px; }
+    .view{ display:none; opacity:0; transform: translateY(8px);
+      transition: opacity .25s ease, transform .25s ease;
+      min-height: calc(100dvh - 32px);
+      box-sizing:border-box; padding:16px;
+    }
+    .view.active{ display:block; opacity:1; transform: translateY(0); }
     .card{
-      background:#fff; border: 1px solid #e5e7eb; border-radius: 12px;
-      box-shadow: 0 8px 18px rgba(0,0,0,.05);
-      max-width: 560px; margin: 16px auto; padding: 16px;
+      background: rgba(255,255,255,.06);
+      backdrop-filter: blur(3px);
+      border: 2px solid #ddd; border-radius: 10px;
+      box-shadow: 0 8px 18px rgba(0,0,0,.15);
+      max-width: 520px; margin: 16px auto; padding: 16px;
     }
-    h1,h2{ margin: 8px 0 12px; text-align:center; color:var(--primary); }
-    p.helper{ color:#666; font-size:.95rem; text-align:center; margin:8px 0 16px; }
-    label{ display:block; font-weight:700; margin: 10px 0 6px; color:#0f172a; }
+    h1,h2{ margin: 8px 0 12px; text-align:center; color:var(--primary); text-shadow: 0 2px 2px #031732; }
+    p.helper{ color:#222; font-size:.95rem; text-align:center; margin:8px 0 16px; font-weight:500; }
+    label{ display:block; font-weight:700; margin: 10px 0 6px; color:#007BFF; }
     input, select, textarea, button{
       width:100%; padding:12px; box-sizing:border-box;
-      border:1.5px solid #cbd5e1; border-radius:8px; background:#fff;
+      border:1.5px solid #ccc; border-radius:8px; background:#fff;
       outline:none; transition: border-color .2s ease, transform .08s ease;
       font-size:16px;
     }
     input:focus, select:focus, textarea:focus{ border-color:var(--primary); }
-    textarea{ resize:vertical; }
     button{
       cursor:pointer; border:2px solid var(--primary);
       background:#fff; color:#000; font-weight:700;
@@ -48,32 +59,63 @@
     .btn-primary{ background:var(--primary); color:#fff; }
     .btn-row{ display:flex; gap:12px; }
     .btn-row > *{ flex:1; }
-    .muted{ color:#666; font-size:.9rem; }
+    .muted{ color:#111; font-size:.9rem; }
+    .center{ text-align:center; }
     .hidden{ display:none !important; }
     .narrow{ max-width: 520px; margin: 0 auto; }
     .spaced{ margin-top:12px; }
-    @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
+    .brand{ width:210px; border-radius:8px; display:block; margin:12px auto 4px; }
 
-    /* Loader centrado */
+    /* Loader centrado (overlay efecto iOS) */
     .loader{
       position:fixed; inset:0;
       display:flex; align-items:center; justify-content:center;
       background:rgba(0,0,0,.35);
       z-index:9999; backdrop-filter: blur(2px);
       opacity:1; transition: opacity .12s ease;
+      will-change: opacity;
     }
-    .loader.hidden{ opacity:0; pointer-events:none; }
-    .spinner{
-      width:56px; height:56px; border:6px solid #fff; border-top-color: transparent;
-      border-radius:50%; animation: spin 0.7s linear infinite;
+    /* Para que el loader haga fade-out pero NO afecte otros .hidden */
+    .loader.hidden{
+      display:flex !important;
+      opacity:0; pointer-events:none;
     }
-    @keyframes spin{ to{ transform: rotate(360deg); } }
+    /* Spinner tipo iOS (12 barras) */
+    .spinner-ios{ position:relative; width:64px; height:64px; }
+    .spinner-ios i{
+      position:absolute; left:50%; top:50%;
+      width:6px; height:18px; margin:-9px 0 0 -3px;
+      background:#fff; border-radius:3px;
+      opacity:.2; animation:iosFade 1.2s linear infinite;
+      transform-origin: center center;
+    }
+    @keyframes iosFade{
+      0%, 39%, 100% { opacity:.2; }
+      40% { opacity:1; }
+    }
+    .spinner-ios i:nth-child(1)  { transform: rotate(  0deg) translateY(-24px); animation-delay:-1.1s; }
+    .spinner-ios i:nth-child(2)  { transform: rotate( 30deg) translateY(-24px); animation-delay:-1.0s; }
+    .spinner-ios i:nth-child(3)  { transform: rotate( 60deg) translateY(-24px); animation-delay:-0.9s; }
+    .spinner-ios i:nth-child(4)  { transform: rotate( 90deg) translateY(-24px); animation-delay:-0.8s; }
+    .spinner-ios i:nth-child(5)  { transform: rotate(120deg) translateY(-24px); animation-delay:-0.7s; }
+    .spinner-ios i:nth-child(6)  { transform: rotate(150deg) translateY(-24px); animation-delay:-0.6s; }
+    .spinner-ios i:nth-child(7)  { transform: rotate(180deg) translateY(-24px); animation-delay:-0.5s; }
+    .spinner-ios i:nth-child(8)  { transform: rotate(210deg) translateY(-24px); animation-delay:-0.4s; }
+    .spinner-ios i:nth-child(9)  { transform: rotate(240deg) translateY(-24px); animation-delay:-0.3s; }
+    .spinner-ios i:nth-child(10) { transform: rotate(270deg) translateY(-24px); animation-delay:-0.2s; }
+    .spinner-ios i:nth-child(11) { transform: rotate(300deg) translateY(-24px); animation-delay:-0.1s; }
+    .spinner-ios i:nth-child(12) { transform: rotate(330deg) translateY(-24px); animation-delay: 0s; }
+
+    @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
   </style>
 </head>
 <body>
-  <!-- Loader -->
+  <!-- Loader iOS -->
   <div id="loader" class="loader hidden" aria-live="polite" aria-busy="true">
-    <div class="spinner" role="status" aria-label="Cargando"></div>
+    <div class="spinner-ios" role="status" aria-label="Cargando">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
   </div>
 
   <div class="container">
@@ -81,20 +123,23 @@
     <section id="view-login" class="view active">
       <div class="card">
         <h1>Gestión de Asistencia</h1>
-        <p class="helper"><b>Al usar este aplicativo, aceptas voluntariamente suministrar tus datos personales.</b><br><i>Art. 5 Ley 1581 de 2012 y Decreto 1074 de 2015</i></p>
+        <p class="helper"><b>Al usar este aplicativo, aceptas voluntariamente suministrar tus datos Personales.</b><br><i>Art. 5 Ley 1581 de 2012 y Decreto 1074 de 2015</i></p>
 
         <label>Documento</label>
         <input id="doc-login" type="tel" inputmode="numeric" placeholder="Sin puntos ni espacios (6 a 10 dígitos)" />
 
         <div class="btn-row spaced">
-          <button class="btn-primary" id="btn-login">Iniciar Sesión</button>
+          <button class="btn-primary" id="btn-login">Validar</button>
           <button id="btn-limpiar">Limpiar</button>
         </div>
+
+        <img class="brand" alt="Brand" src="https://res.cloudinary.com/dqqeavica/image/upload/v1753538919/BANNER_JHONNY_e0yw7m.png" />
+        <p class="center muted">Copyright © <a href="https://wa.me/573103230712" target="_blank"><b>Oscar Polanía</b></a></p>
       </div>
 
       <!-- REGISTRO (solo si no existe) -->
       <div id="registro-card" class="card" style="display:none;">
-        <h2>Nuevo Usuario</h2>
+        <h2 style="color:var(--primary)">INFORMACIÓN PERSONAL</h2>
         <div class="narrow">
           <label>Nombre Completo</label>
           <input id="reg-nombre" type="text" placeholder="Ingresa tu Nombre completo" />
@@ -240,7 +285,7 @@
             <option value="VILLAS DEL MEDITERANEO">VILLAS DEL MEDITERANEO</option>
           </select>
 
-          <!-- Campo Referido (opcional) -->
+          <!-- Campo Referido (opcional/ocultable) -->
           <div id="reg-referido-wrap" style="display:none;">
             <label>N° Referido</label>
             <input id="reg-referencia" type="tel" inputmode="numeric" placeholder="N° de Referido (opcional)" />
@@ -251,7 +296,7 @@
           </div>
 
           <div class="btn-row spaced">
-            <button class="btn-primary" id="btn-guardar-registro">Guardar</button>
+            <button class="spaced btn-primary" id="btn-guardar-registro">Guardar</button>
             <button id="btn-reg-atras">Atrás</button>
           </div>
           <p class="center muted spaced"><b>Revisa la información antes de guardar.</b></p>
@@ -262,11 +307,14 @@
     <!-- VISTA: ASISTENCIA -->
     <section id="view-asistencia" class="view">
       <div class="card narrow">
-        <h2>Registrar Asistencia</h2>
+        <h2 style="color:var(--primary)">REGISTRA ASISTENCIA</h2>
+
+        <!-- Ocultos -->
         <input id="a-documento" type="hidden" />
         <input id="a-telefono" type="hidden" />
         <input id="a-residencia" type="hidden" />
 
+        <!-- Nombre solo lectura -->
         <label>Nombre (solo lectura)</label>
         <input id="a-nombre" type="text" readonly placeholder="Tu Nombre" />
 
@@ -287,24 +335,61 @@
   </div>
 
   <script>
-    // REEMPLAZA con la URL de tu Web App desplegada (Implementar -> Desplegar -> Nueva implementación)
+    // URL de tu Apps Script desplegado
     const API_BASE = 'https://script.google.com/macros/s/AKfycbyr5tNsOjTMyAJlsJTvFzUERQ8lpb000UCdPU8eS4o-nPyojrd2dVX2-4tz1a-o6eCd8Q/exec';
 
-    // Loader
+    // Loader (smart delay)
     const loader = document.getElementById('loader');
-    let loadingCount = 0, loaderTimer = null;
+    let loadingCount = 0;
+    let loaderTimer = null;
     function startLoading(){
       loadingCount++;
       if (loadingCount === 1){
-        loaderTimer = setTimeout(()=>{ loader.classList.remove('hidden'); loaderTimer=null; }, 120);
+        // Mostrar solo si tarda >120ms (evita parpadeo)
+        loaderTimer = setTimeout(()=>{ loader.classList.remove('hidden'); loaderTimer = null; }, 120);
       }
     }
     function stopLoading(){
       if (loadingCount === 0) return;
       loadingCount--;
       if (loadingCount === 0){
-        if (loaderTimer){ clearTimeout(loaderTimer); loaderTimer=null; }
+        if (loaderTimer){ clearTimeout(loaderTimer); loaderTimer = null; }
         loader.classList.add('hidden');
+      }
+    }
+
+    // Sonidos
+    const SOUNDS = {
+      question: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011577/Pay_fail_ls2aif.mp3',
+      info: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011578/Default_notification_pkp4wr.mp3',
+      success: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011577/Pay_success_t5aawh.mp3',
+      error: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011578/Low_battery_d5qua1.mp3',
+      warning: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011578/Low_battery_d5qua1.mp3',
+      resumen: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011577/Charging_clkgcd.mp3',
+      login: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011577/Siri_star_g1owy4.mp3',
+      logout: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011577/Siri_End_kelv02.mp3',
+      back: 'https://res.cloudinary.com/dqqeavica/video/upload/v1759011578/Keyboard_Enter_b9k2dc.mp3'
+    };
+    function playSoundOnce(url){
+      try{
+        const a = new Audio(url);
+        a.preload = 'auto';
+        a.play().catch(()=>{});
+      }catch(e){}
+    }
+    // Patch SweetAlert2 para sonar según icono o etiqueta de resumen
+    if (window.Swal && typeof Swal.fire === 'function'){
+      const __fire = Swal.fire.bind(Swal);
+      Swal.fire = function(options = {}, ...rest){
+        try{
+          if (options.soundTag === 'resumen'){
+            playSoundOnce(SOUNDS.resumen);
+          } else {
+            const icon = options.icon || options.type;
+            if (icon && SOUNDS[icon]) playSoundOnce(SOUNDS[icon]);
+          }
+        }catch(e){}
+        return __fire(options, ...rest);
       }
     }
 
@@ -367,6 +452,7 @@
     const regCard = document.getElementById('registro-card');
 
     btnLimpiar.addEventListener('click', ()=>{
+      playSoundOnce(SOUNDS.back);
       docLogin.value = '';
       regCard.style.display = 'none';
     });
@@ -381,7 +467,7 @@
           text: 'Ingresa un Documento para validar.',
           timer: 3000,
           width: '80%',
-          padding: '1rem',
+          padding: '1rem'
         });
         return;
       }
@@ -393,17 +479,16 @@
       try {
         const res = await apiGet('validarDocumento', { documento });
         if (res && res.existe) {
-          // Cargar asistencia directo
           currentUser = {
             documento: res.documento,
             nombre: res.nombre,
             telefono: res.telefono || '',
             residencia: res.residencia || ''
           };
+          playSoundOnce(SOUNDS.login);
           await prepararAsistencia();
           showView('view-asistencia');
         } else {
-          // Mostrar registro
           regCard.style.display = '';
           Swal.fire({ icon:'info', title:'Nuevo usuario', text:'Completa tu registro para continuar.' });
         }
@@ -419,9 +504,10 @@
     btnRefMas.addEventListener('click', (ev)=>{ ev.preventDefault(); regRefWrap.style.display=''; btnRefMas.classList.add('hidden'); btnRefMenos.classList.remove('hidden'); });
     btnRefMenos.addEventListener('click', (ev)=>{ ev.preventDefault(); regRefWrap.style.display='none'; btnRefMas.classList.remove('hidden'); btnRefMenos.classList.add('hidden'); document.getElementById('reg-referencia').value=''; });
 
-    // Botón Atrás en registro: oculta el formulario
+    // Atrás en registro
     document.getElementById('btn-reg-atras').addEventListener('click', (e)=>{
       e.preventDefault();
+      playSoundOnce(SOUNDS.back);
       regCard.style.display='none';
     });
 
@@ -461,12 +547,13 @@
         <b>N° Documento:</b> ${formData.documento}<br>
         <b>Whatsapp:</b> ${formData.telefono}<br>
         <b>Residencia:</b> ${formData.residencia}<br>
-        <b>Referido:</b> ${formData.referencia || 'No Registras'}
+        <b>Referido:</b> ${formData.referencia || 'No Registras'}<br><br>
+        <img class="brand" src="https://res.cloudinary.com/dqqeavica/image/upload/v1753538919/BANNER_JHONNY_e0yw7m.png" alt="">
       `;
       const rs = await Swal.fire({
         icon:'info', title:'Resumen de Registro', html:resumenHtml,
         showCancelButton:true, confirmButtonText:'Confirmar', cancelButtonText:'Editar',
-        width:'80%',
+        width:'80%', soundTag:'resumen'
       });
       if(!rs.isConfirmed) return;
 
@@ -483,6 +570,7 @@
               residencia: res.residencia || ''
             };
             await Swal.fire({ icon:'success', title:'Registro exitoso', timer:1600, showConfirmButton:false });
+            playSoundOnce(SOUNDS.login);
             regCard.style.display='none';
             await prepararAsistencia();
             showView('view-asistencia');
@@ -524,10 +612,7 @@
 
     document.getElementById('a-reunion').addEventListener('input', async (e)=>{
       const val = (e.target.value||'').trim();
-      if(!val){
-        document.getElementById('evento-wrap').style.display='none';
-        return;
-      }
+      if(!val){ document.getElementById('evento-wrap').style.display='none'; return; }
       try{
         const r = await apiGet('validarReunion', { reunion: val });
         document.getElementById('a-evento').value = r?.evento || '';
@@ -545,19 +630,16 @@
       };
       const documentoRegex = /^[0-9]{6,10}$/;
       const reunionRegex = /^[0-9]{1,3}$/;
-
       if(!documentoRegex.test(body.documento)){
         return Swal.fire({icon:'warning',title:'Documento inválido'});
       }
       if(!reunionRegex.test(body.reunion)){
         return Swal.fire({icon:'warning',title:'N° de Evento inválido'});
       }
-
       try{
         const r = await apiPost('guardarAsistenciaEnServidor', body);
         if(r && r.success){
           await Swal.fire({ icon:'success', title:'Asistencia registrada', timer:1500, showConfirmButton:false });
-          // Regresar al login tras guardar
           showView('view-login');
         }else{
           Swal.fire({ icon:'info', title:'Atención', html: r?.message || 'No se pudo registrar' });
@@ -567,7 +649,10 @@
       }
     });
 
-    document.getElementById('a-volver').addEventListener('click', ()=> showView('view-login'));
+    document.getElementById('a-volver').addEventListener('click', ()=>{
+      playSoundOnce(SOUNDS.back);
+      showView('view-login');
+    });
   </script>
 </body>
 </html>
