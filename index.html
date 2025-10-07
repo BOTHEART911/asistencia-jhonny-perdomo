@@ -2,13 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Gestión de Asistencia</title>
+  <title>Gestión de Asistencias</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#007BFF" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <!-- Favicon -->
-  <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1753538807/JHONNY_PERDOMO_dn3dah.png">
+  <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1759869288/Asistencia_cqvfzo.png" />
   <!-- Choices (select con búsqueda) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -28,7 +30,8 @@
       background: url('https://res.cloudinary.com/dqqeavica/image/upload/v1753538930/FONDO_JHONNY_sugwsj.png') center/cover fixed no-repeat;
     }
     .container{ max-width: 1000px; margin: 0 auto; padding: 16px; }
-    .view{ display:none; opacity:0; transform: translateY(8px);
+    .view{
+      display:none; opacity:0; transform: translateY(8px);
       transition: opacity .25s ease, transform .25s ease;
       min-height: calc(100dvh - 32px);
       box-sizing:border-box; padding:16px;
@@ -75,7 +78,7 @@
       opacity:1; transition: opacity .12s ease;
       will-change: opacity;
     }
-    /* Para que el loader haga fade-out pero NO afecte otros .hidden */
+    /* Fade-out del loader sin afectar otros .hidden */
     .loader.hidden{
       display:flex !important;
       opacity:0; pointer-events:none;
@@ -107,6 +110,72 @@
     .spinner-ios i:nth-child(12) { transform: rotate(330deg) translateY(-24px); animation-delay: 0s; }
 
     @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
+
+    /* --- Estilos vista de instalación (look moderno) --- */
+    #view-instalar{
+      position: relative;
+      min-height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 12px;
+    }
+    #view-instalar::before{
+      content: "";
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(1.5px);
+      z-index: -1;
+    }
+    .install-hero{
+      text-align: center;
+      width: min(92vw, 540px);
+      margin-inline: auto;
+    }
+    .install-hero .hero-title{
+      margin: 0 0 14px 0;
+      font-size: clamp(1.4rem, 2.5vw + 1rem, 2.2rem);
+      letter-spacing: .6px;
+      font-weight: 800;
+      color: #1e88e5;
+      text-transform: uppercase;
+      text-shadow: 0 2px 0 rgba(0,0,0,.05);
+    }
+    .avatar-wrap{
+      width: 220px; height: 220px;
+      margin: 8px auto 14px auto;
+      border-radius: 50%;
+      padding: 8px; /* aro verde externo */
+      background: linear-gradient(135deg, #2e7d32, #67b86a);
+      box-shadow: 0 6px 18px rgba(0,0,0,.15), inset 0 0 0 2px rgba(255,255,255,.35);
+    }
+    .avatar{
+      width: 100%; height: 100%;
+      display: block; border-radius: 50%;
+      object-fit: cover; border: 8px solid #f4f8f6; /* aro blanco interno */
+      box-shadow: 0 3px 10px rgba(0,0,0,.15);
+    }
+    .hashtags{ list-style: none; padding: 0; margin: 6px 0 18px 0; }
+    .hashtags li{ margin: 8px 0; font-weight: 800; color: #111; }
+    .btn-install{
+      appearance: none; border: 0; border-radius: 10px;
+      padding: 12px 22px; font-weight: 800; letter-spacing: .2px;
+      color: #fff; background: linear-gradient(180deg, #1e88e5, #1565c0);
+      box-shadow: 0 10px 22px rgba(30,136,229,.35);
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+    }
+    .btn-install:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(21,101,192,.40);
+      filter: brightness(1.03);
+    }
+    .btn-install:active{ transform: translateY(0); }
+    .btn-install .icon{ margin-left: 6px; }
+    @media (max-width: 420px){
+      .avatar-wrap{ width: 190px; height: 190px; padding: 7px; }
+    }
   </style>
 </head>
 <body>
@@ -119,10 +188,35 @@
   </div>
 
   <div class="container">
+    <!-- VISTA: INSTALAR (se decide por JS si mostrarla) -->
+    <section id="view-instalar" class="view">
+      <div class="install-hero">
+        <h1 class="hero-title">Gestión de Asistencias</h1>
+
+        <div class="avatar-wrap">
+          <img
+            class="avatar"
+            src="https://res.cloudinary.com/dqqeavica/image/upload/v1759869290/Asistencia_y1dbnu.gif"
+            alt="Logotipo app"
+          />
+        </div>
+
+        <ul class="hashtags">
+          <li>#SoyDeFlandes</li>
+          <li>#NoParamos</li>
+          <li>#SiemprePresentes</li>
+        </ul>
+
+        <button class="btn-install" id="btn-instalar-standalone">
+          Instalar la App <span class="icon">📱</span>
+        </button>
+      </div>
+    </section>
+
     <!-- VISTA: LOGIN -->
-    <section id="view-login" class="view active">
+    <section id="view-login" class="view">
       <div class="card">
-        <h1>Gestión de Asistencia</h1>
+        <h1>Gestión de Asistencias</h1>
         <p class="helper"><b>Al usar este aplicativo, aceptas voluntariamente suministrar tus datos Personales.</b><br><i>Art. 5 Ley 1581 de 2012 y Decreto 1074 de 2015</i></p>
 
         <label>Documento</label>
@@ -323,7 +417,7 @@
 
         <div id="evento-wrap" style="display:none;">
           <label>Nombre de Evento</label>
-          <input id="a-evento" type="text" readonly>
+          <input id="a-evento" type="text" readonly />
         </div>
 
         <div class="btn-row spaced">
@@ -345,7 +439,6 @@
     function startLoading(){
       loadingCount++;
       if (loadingCount === 1){
-        // Mostrar solo si tarda >120ms (evita parpadeo)
         loaderTimer = setTimeout(()=>{ loader.classList.remove('hidden'); loaderTimer = null; }, 120);
       }
     }
@@ -426,7 +519,8 @@
     // Helpers de vistas
     function showView(id){
       for(const el of document.querySelectorAll('.view')) el.classList.remove('active');
-      document.getElementById(id).classList.add('active');
+      const v = document.getElementById(id);
+      if (v) v.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -653,6 +747,93 @@
       playSoundOnce(SOUNDS.back);
       showView('view-login');
     });
+
+    // ---------------- PWA: mostrar instalación si no está instalada ----------------
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('btn-instalar-standalone');
+
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches
+          || window.matchMedia('(display-mode: installed)').matches
+          || (window.navigator.standalone === true);
+    }
+    function isIOS(){
+      return /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
+    }
+    function updateInstallButtonsVisibility(){
+      const shouldShow = !isStandalone() && (isIOS() || !!deferredPrompt);
+      if (installBtn) installBtn.style.display = shouldShow ? '' : 'none';
+    }
+
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      e.preventDefault();
+      deferredPrompt = e;
+      updateInstallButtonsVisibility();
+    });
+
+    window.addEventListener('appinstalled', ()=>{
+      deferredPrompt = null;
+      updateInstallButtonsVisibility();
+      try{ Swal.fire({ icon:'success', title:'¡App instalada!', timer:1700, showConfirmButton:false }); }catch(_){}
+      showView('view-login');
+    });
+
+    if (installBtn){
+      installBtn.addEventListener('click', async ()=>{
+        if (isIOS()){
+          try{
+            Swal.fire({
+              icon:'info',
+              title:'Instalar en iPhone/iPad',
+              html:'1) Toca Compartir (cuadro con flecha).<br>2) Elige "Agregar a pantalla de inicio".<br>3) Confirma "Agregar".'
+            });
+          }catch(_){
+            alert('En iPhone/iPad: Compartir → Agregar a pantalla de inicio.');
+          }
+          return;
+        }
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice.catch(()=>({ outcome:'dismissed' }));
+        deferredPrompt = null;
+        updateInstallButtonsVisibility();
+        if (choice && choice.outcome === 'accepted'){
+          try{ Swal.fire({ icon:'success', title:'¡App instalándose!', timer:1700, showConfirmButton:false }); }catch(_){}
+        }
+      });
+    }
+
+    // Forzar vista instalación con hash
+    (function(){
+      function openInstallIfHash(){
+        if (location.hash === '#instalar') {
+          showView('view-instalar');
+          updateInstallButtonsVisibility();
+          return;
+        }
+      }
+      window.addEventListener('load', openInstallIfHash);
+      window.addEventListener('hashchange', openInstallIfHash);
+    })();
+
+    // Inicial: decidir vista al cargar (evita parpadeo)
+    window.addEventListener('load', () => {
+      if (location.hash === '#instalar') {
+        showView('view-instalar');
+      } else if (isStandalone()) {
+        showView('view-login');
+      } else {
+        showView('view-instalar');
+      }
+      updateInstallButtonsVisibility();
+    });
+
+    // Service Worker
+    if ('serviceWorker' in navigator){
+      window.addEventListener('load', ()=>{
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      });
+    }
   </script>
 </body>
 </html>
