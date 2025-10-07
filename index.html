@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Favicon -->
   <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1759869288/Asistencia_cqvfzo.png">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#007BFF">
+
   <!-- Choices (select con búsqueda) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
@@ -107,6 +112,17 @@
     .spinner-ios i:nth-child(12) { transform: rotate(330deg) translateY(-24px); animation-delay: 0s; }
 
     @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
+
+    /* Botón PWA flotante (no invasivo) */
+    #pwa-install-btn{
+      position:fixed;
+      right:16px; bottom:16px;
+      z-index: 9998;
+      border-radius: 999px;
+      padding: 10px 14px;
+      box-shadow: 0 6px 12px rgba(0,0,0,.18);
+      display:none;
+    }
   </style>
 </head>
 <body>
@@ -333,6 +349,9 @@
       </div>
     </section>
   </div>
+
+  <!-- Botón PWA (aparece solo cuando hay prompt o en iOS) -->
+  <button id="pwa-install-btn" class="btn-primary">Instalar la App 📲</button>
 
   <script>
     // URL de tu Apps Script desplegado
@@ -653,6 +672,110 @@
       playSoundOnce(SOUNDS.back);
       showView('view-login');
     });
+  </script>
+
+  <!-- PWA: instalación y registro de SW (no invasivo) -->
+  <script>
+    (function(){
+      const btn = document.getElementById('pwa-install-btn');
+      if(!btn) return;
+
+      let deferredPrompt = null;
+
+      const isIOS = () => /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
+      const isStandalone = () =>
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator.standalone === true) ||
+        window.matchMedia('(display-mode: installed)').matches;
+
+      function markInstalled(){
+        try{ localStorage.setItem('appInstalled','1'); }catch(_){}
+      }
+      function clearInstalledMark(){
+        try{ localStorage.removeItem('appInstalled'); }catch(_){}
+      }
+      function isMarkedInstalled(){
+        try{ return localStorage.getItem('appInstalled') === '1'; }catch(_){ return false; }
+      }
+
+      async function detectInstalled(){
+        if (isStandalone()) return true;
+
+        // Intentar detectar con getInstalledRelatedApps comparando contra el manifest actual
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        const manifestHref = manifestLink ? new URL(manifestLink.getAttribute('href'), location.href).href : null;
+
+        if (typeof navigator.getInstalledRelatedApps === 'function' && manifestHref){
+          try{
+            const apps = await navigator.getInstalledRelatedApps();
+            const found = apps.some(a => a.platform === 'webapp' && typeof a.url === 'string' && a.url.replace(/#.*$/,'') === manifestHref.replace(/#.*$/,''));
+            if (found){
+              markInstalled();
+              return true;
+            } else {
+              clearInstalledMark();
+            }
+          }catch(_){}
+        }
+        return isMarkedInstalled();
+      }
+
+      function updateBtn(){
+        const shouldShow = !isStandalone() && !isMarkedInstalled() && (isIOS() || !!deferredPrompt);
+        btn.style.display = shouldShow ? '' : 'none';
+      }
+
+      window.addEventListener('beforeinstallprompt', (e)=>{
+        e.preventDefault();
+        deferredPrompt = e;
+        updateBtn();
+      });
+
+      window.addEventListener('appinstalled', ()=>{
+        markInstalled();
+        updateBtn();
+        try{
+          if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalada!', timer:1800, showConfirmButton:false });
+        }catch(_){}
+      });
+
+      btn.addEventListener('click', async ()=>{
+        if (isIOS()){
+          // Guía iOS
+          try{
+            if(window.Swal){
+              return Swal.fire({
+                icon:'info',
+                title:'Instalar en iPhone/iPad',
+                html:'1) Toca Compartir (cuadro con flecha).<br>2) Elige "Agregar a pantalla de inicio".<br>3) Confirma "Agregar".'
+              });
+            }
+          }catch(_){}
+          return;
+        }
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (choice && choice.outcome === 'accepted'){
+          markInstalled();
+          try{
+            if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalándose!', timer:1800, showConfirmButton:false });
+          }catch(_){}
+        }
+        updateBtn();
+      });
+
+      if ('serviceWorker' in navigator){
+        window.addEventListener('load', ()=>{
+          navigator.serviceWorker.register('./sw.js').catch(()=>{});
+        });
+      }
+
+      // Actualizar visibilidad al cargar y al volver a la pestaña
+      window.addEventListener('load', async ()=>{ await detectInstalled(); updateBtn(); });
+      window.addEventListener('pageshow', updateBtn);
+    })();
   </script>
 </body>
 </html>
