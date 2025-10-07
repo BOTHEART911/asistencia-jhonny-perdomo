@@ -1,7 +1,7 @@
 {
   "id": "./",
   "name": "ASISTENCIA JHONNY",
-  "short_name": "Asistencia J.",
+  "short_name": "Gestión Asistencia",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
