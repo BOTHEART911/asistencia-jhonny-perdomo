@@ -80,12 +80,10 @@
       opacity:1; transition: opacity .12s ease;
       will-change: opacity;
     }
-    /* Para que el loader haga fade-out pero NO afecte otros .hidden */
     .loader.hidden{
       display:flex !important;
       opacity:0; pointer-events:none;
     }
-    /* Spinner tipo iOS (12 barras) */
     .spinner-ios{ position:relative; width:64px; height:64px; }
     .spinner-ios i{
       position:absolute; left:50%; top:50%;
@@ -113,14 +111,21 @@
 
     @media (max-width: 700px){ .btn-row{ flex-direction:column; } }
 
+    /* Vista instalar (opcional, vía #instalar) */
+    #view-instalar{
+      display:flex; align-items:center; justify-content:center;
+      min-height: calc(100dvh - 32px); text-align:center;
+    }
+    #view-instalar .install-wrap{
+      display:flex; flex-direction:column; align-items:center; gap:12px; padding:8px;
+    }
+    #view-instalar .brand{ width:180px; border-radius:8px; }
+    #view-instalar .tagline{ font-weight:800; color:#111; margin: 0 0 4px; }
+
     /* Botón PWA flotante (no invasivo) */
     #pwa-install-btn{
-      position:fixed;
-      right:16px; bottom:16px;
-      z-index: 9998;
-      border-radius: 999px;
-      padding: 10px 14px;
-      box-shadow: 0 6px 12px rgba(0,0,0,.18);
+      position:fixed; right:16px; bottom:16px; z-index:9998;
+      border-radius:999px; padding:10px 14px; box-shadow:0 6px 12px rgba(0,0,0,.18);
       display:none;
     }
   </style>
@@ -320,6 +325,18 @@
       </div>
     </section>
 
+    <!-- VISTA: INSTALAR (opcional con #instalar) -->
+    <section id="view-instalar" class="view">
+      <div class="install-wrap">
+        <h2 style="color:var(--primary); text-shadow: 0 2px 2px #031732; margin:0 0 8px;">Gestión de Asistencias</h2>
+        <img class="brand" alt="App" src="https://res.cloudinary.com/dqqeavica/image/upload/v1759869288/Asistencia_cqvfzo.png" />
+        <p class="tagline">Instala la App para una mejor experiencia</p>
+        <div class="btn-row spaced" style="max-width:420px; width:100%; justify-content:center;">
+          <button class="btn-primary" id="btn-instalar-standalone">Instalar la App 📲</button>
+        </div>
+      </div>
+    </section>
+
     <!-- VISTA: ASISTENCIA -->
     <section id="view-asistencia" class="view">
       <div class="card narrow">
@@ -350,7 +367,7 @@
     </section>
   </div>
 
-  <!-- Botón PWA (aparece solo cuando hay prompt o en iOS) -->
+  <!-- Botón PWA flotante (aparece cuando aplica) -->
   <button id="pwa-install-btn" class="btn-primary">Instalar la App 📲</button>
 
   <script>
@@ -364,7 +381,6 @@
     function startLoading(){
       loadingCount++;
       if (loadingCount === 1){
-        // Mostrar solo si tarda >120ms (evita parpadeo)
         loaderTimer = setTimeout(()=>{ loader.classList.remove('hidden'); loaderTimer = null; }, 120);
       }
     }
@@ -396,7 +412,6 @@
         a.play().catch(()=>{});
       }catch(e){}
     }
-    // Patch SweetAlert2 para sonar según icono o etiqueta de resumen
     if (window.Swal && typeof Swal.fire === 'function'){
       const __fire = Swal.fire.bind(Swal);
       Swal.fire = function(options = {}, ...rest){
@@ -579,7 +594,6 @@
       try{
         const r = await apiPost('guardarContactoEnServidor', formData);
         if(r && r.success){
-          // Revalidar y pasar a asistencia
           const res = await apiGet('validarDocumento', { documento: formData.documento });
           if(res?.existe){
             currentUser = {
@@ -608,7 +622,6 @@
     async function prepararAsistencia(){
       if(!currentUser) return;
       try{
-        // Reconsultar para traer nombre/telefono/residencia actualizados
         const d = await apiGet('validarDocumento', { documento: currentUser.documento });
         if(d && d.existe){
           currentUser = {
@@ -677,38 +690,33 @@
   <!-- PWA: instalación y registro de SW (no invasivo) -->
   <script>
     (function(){
-      const btn = document.getElementById('pwa-install-btn');
-      if(!btn) return;
-
+      const installButtons = Array.from(document.querySelectorAll('#pwa-install-btn, #btn-instalar-standalone'));
       let deferredPrompt = null;
 
       const isIOS = () => /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
       const isStandalone = () =>
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator.standalone === true) ||
-        window.matchMedia('(display-mode: installed)').matches;
+        window.matchMedia('(display-mode: installed)').matches ||
+        (window.navigator.standalone === true);
 
-      function markInstalled(){
-        try{ localStorage.setItem('appInstalled','1'); }catch(_){}
-      }
-      function clearInstalledMark(){
-        try{ localStorage.removeItem('appInstalled'); }catch(_){}
-      }
-      function isMarkedInstalled(){
-        try{ return localStorage.getItem('appInstalled') === '1'; }catch(_){ return false; }
-      }
+      function markInstalled(){ try{ localStorage.setItem('appInstalled','1'); }catch(_){ } }
+      function clearInstalledMark(){ try{ localStorage.removeItem('appInstalled'); }catch(_){ } }
+      function isMarkedInstalled(){ try{ return localStorage.getItem('appInstalled') === '1'; }catch(_){ return false; } }
 
       async function detectInstalled(){
         if (isStandalone()) return true;
 
-        // Intentar detectar con getInstalledRelatedApps comparando contra el manifest actual
         const manifestLink = document.querySelector('link[rel="manifest"]');
         const manifestHref = manifestLink ? new URL(manifestLink.getAttribute('href'), location.href).href : null;
 
         if (typeof navigator.getInstalledRelatedApps === 'function' && manifestHref){
           try{
             const apps = await navigator.getInstalledRelatedApps();
-            const found = apps.some(a => a.platform === 'webapp' && typeof a.url === 'string' && a.url.replace(/#.*$/,'') === manifestHref.replace(/#.*$/,''));
+            const found = apps.some(a =>
+              a.platform === 'webapp' &&
+              typeof a.url === 'string' &&
+              a.url.replace(/#.*$/,'') === manifestHref.replace(/#.*$/,'')
+            );
             if (found){
               markInstalled();
               return true;
@@ -720,50 +728,52 @@
         return isMarkedInstalled();
       }
 
-      function updateBtn(){
+      function updateInstallButtonsVisibility(){
         const shouldShow = !isStandalone() && !isMarkedInstalled() && (isIOS() || !!deferredPrompt);
-        btn.style.display = shouldShow ? '' : 'none';
+        installButtons.forEach(btn => { if (btn) btn.style.display = shouldShow ? '' : 'none'; });
       }
 
       window.addEventListener('beforeinstallprompt', (e)=>{
         e.preventDefault();
         deferredPrompt = e;
-        updateBtn();
+        updateInstallButtonsVisibility();
       });
 
       window.addEventListener('appinstalled', ()=>{
         markInstalled();
-        updateBtn();
+        updateInstallButtonsVisibility();
         try{
           if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalada!', timer:1800, showConfirmButton:false });
         }catch(_){}
       });
 
-      btn.addEventListener('click', async ()=>{
-        if (isIOS()){
-          // Guía iOS
-          try{
-            if(window.Swal){
-              return Swal.fire({
-                icon:'info',
-                title:'Instalar en iPhone/iPad',
-                html:'1) Toca Compartir (cuadro con flecha).<br>2) Elige "Agregar a pantalla de inicio".<br>3) Confirma "Agregar".'
-              });
-            }
-          }catch(_){}
-          return;
-        }
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        if (choice && choice.outcome === 'accepted'){
-          markInstalled();
-          try{
-            if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalándose!', timer:1800, showConfirmButton:false });
-          }catch(_){}
-        }
-        updateBtn();
+      installButtons.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', async ()=>{
+          if (isIOS()){
+            try{
+              if(window.Swal){
+                return Swal.fire({
+                  icon:'info',
+                  title:'Instalar en iPhone/iPad',
+                  html:'1) Toca Compartir (cuadro con flecha).<br>2) Elige "Agregar a pantalla de inicio".<br>3) Confirma "Agregar".'
+                });
+              }
+            }catch(_){}
+            return;
+          }
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const choice = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if (choice && choice.outcome === 'accepted'){
+            markInstalled();
+            try{
+              if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalándose!', timer:1800, showConfirmButton:false });
+            }catch(_){}
+          }
+          updateInstallButtonsVisibility();
+        });
       });
 
       if ('serviceWorker' in navigator){
@@ -772,9 +782,31 @@
         });
       }
 
-      // Actualizar visibilidad al cargar y al volver a la pestaña
-      window.addEventListener('load', async ()=>{ await detectInstalled(); updateBtn(); });
-      window.addEventListener('pageshow', updateBtn);
+      // Ruta #instalar: mostrar vista de instalación y redirigir a login si ya está instalada
+      (function(){
+        let installRedirectTimer = null;
+
+        async function handleInstallRoute(){
+          if (location.hash !== '#instalar') return;
+
+          showView('view-instalar');
+
+          if (installRedirectTimer){ clearTimeout(installRedirectTimer); installRedirectTimer = null; }
+
+          const installed = await detectInstalled();
+          if (installed){
+            installRedirectTimer = setTimeout(()=> showView('view-login'), 2000);
+          } else {
+            updateInstallButtonsVisibility();
+          }
+        }
+
+        window.addEventListener('load', handleInstallRoute);
+        window.addEventListener('hashchange', handleInstallRoute);
+      })();
+
+      window.addEventListener('load', async ()=>{ await detectInstalled(); updateInstallButtonsVisibility(); });
+      window.addEventListener('pageshow', updateInstallButtonsVisibility);
     })();
   </script>
 </body>
