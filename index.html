@@ -626,9 +626,9 @@
 
     // ASISTENCIA
 
-    // Debounce para N° de Reunión
-let aReunionDebounceTimer = null;
-let aReunionQuerySeq = 0;
+    // Debounce para N° de Reunión (debe declararse antes del uso)
+    let aReunionDebounceTimer = null;
+    let aReunionQuerySeq = 0;
 
     async function prepararAsistencia(){
       if(!currentUser) return;
@@ -652,46 +652,45 @@ let aReunionQuerySeq = 0;
       document.getElementById('a-reunion').value = '';
       document.getElementById('a-evento').value = '';
       document.getElementById('evento-wrap').style.display='none';
+
+      // Limpia cualquier debounce/consulta pendiente al abrir la vista
+      if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+      aReunionDebounceTimer = null;
+      aReunionQuerySeq++;
     }
 
-      // INSERT al final de prepararAsistencia(), tras los reseteos de campos:
-  if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
-  aReunionDebounceTimer = null;
-  aReunionQuerySeq++;
-}
-
+    // Listener con debounce 1.25s
     document.getElementById('a-reunion').addEventListener('input', (e) => {
-  const wrap = document.getElementById('evento-wrap');
-  const out  = document.getElementById('a-evento');
-  const val  = (e.target.value || '').trim();
+      const wrap = document.getElementById('evento-wrap');
+      const out  = document.getElementById('a-evento');
+      const val  = (e.target.value || '').trim();
 
-  // Si está vacío: cancela debounce, oculta y limpia
-  if (!val){
-    if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
-    aReunionDebounceTimer = null;
-    aReunionQuerySeq++; // invalida cualquier petición en curso
-    wrap.style.display = 'none';
-    out.value = '';
-    return;
-  }
+      // Si está vacío: cancela debounce, oculta y limpia
+      if (!val){
+        if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+        aReunionDebounceTimer = null;
+        aReunionQuerySeq++; // invalida cualquier petición en curso
+        wrap.style.display = 'none';
+        out.value = '';
+        return;
+      }
 
-  // Reinicia temporizador de 1.25s
-  if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
-  aReunionDebounceTimer = setTimeout(async () => {
-    const currentVal = (document.getElementById('a-reunion').value || '').trim();
-    if (!currentVal){ wrap.style.display='none'; out.value=''; return; }
+      // Reinicia temporizador de 1.25s
+      if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+      aReunionDebounceTimer = setTimeout(async () => {
+        const currentVal = (document.getElementById('a-reunion').value || '').trim();
+        if (!currentVal){ wrap.style.display='none'; out.value=''; return; }
 
-    // ID de consulta para descartar respuestas antiguas
-    const mySeq = ++aReunionQuerySeq;
-    try{
-      const r = await apiGet('validarReunion', { reunion: currentVal });
-      if (mySeq !== aReunionQuerySeq) return; // llegó una respuesta vieja, descártala
-      out.value = r?.evento || '';
-      wrap.style.display = '';
-    }catch(_){}
-  }, 1250); // 1 segundo y cuarto
-});
-
+        // ID de consulta para descartar respuestas antiguas
+        const mySeq = ++aReunionQuerySeq;
+        try{
+          const r = await apiGet('validarReunion', { reunion: currentVal });
+          if (mySeq !== aReunionQuerySeq) return; // llegó una respuesta vieja, descártala
+          out.value = r?.evento || '';
+          wrap.style.display = '';
+        }catch(_){}
+      }, 1250); // 1 segundo y cuarto
+    });
 
     document.getElementById('a-guardar').addEventListener('click', async ()=>{
       const body = {
@@ -724,6 +723,10 @@ let aReunionQuerySeq = 0;
 
     document.getElementById('a-volver').addEventListener('click', ()=>{
       playSoundOnce(SOUNDS.back);
+      // Limpia debounce al salir por si había una búsqueda pendiente
+      if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+      aReunionDebounceTimer = null;
+      aReunionQuerySeq++;
       showView('view-login');
     });
   </script>
