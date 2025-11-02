@@ -626,6 +626,10 @@
 
     // ASISTENCIA
 
+    // Debounce para N° de Reunión
+let aReunionDebounceTimer = null;
+let aReunionQuerySeq = 0;
+
     async function prepararAsistencia(){
       if(!currentUser) return;
       try{
@@ -650,16 +654,43 @@
       document.getElementById('evento-wrap').style.display='none';
     }
 
-    document.getElementById('a-reunion').addEventListener('input', async (e)=>{
-      const val = (e.target.value||'').trim();
-      if(!val){ document.getElementById('evento-wrap').style.display='none'; return; }
-      try{
-        const r = await apiGet('validarReunion', { reunion: val });
-        document.getElementById('a-evento').value = r?.evento || '';
-        document.getElementById('evento-wrap').style.display='';
-      }catch{}
-    });
+      // INSERT al final de prepararAsistencia(), tras los reseteos de campos:
+  if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+  aReunionDebounceTimer = null;
+  aReunionQuerySeq++;
+}
 
+    document.getElementById('a-reunion').addEventListener('input', (e) => {
+  const wrap = document.getElementById('evento-wrap');
+  const out  = document.getElementById('a-evento');
+  const val  = (e.target.value || '').trim();
+
+  // Si está vacío: cancela debounce, oculta y limpia
+  if (!val){
+    if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+    aReunionDebounceTimer = null;
+    aReunionQuerySeq++; // invalida cualquier petición en curso
+    wrap.style.display = 'none';
+    out.value = '';
+    return;
+  }
+
+  // Reinicia temporizador de 1.25s
+  if (aReunionDebounceTimer) clearTimeout(aReunionDebounceTimer);
+  aReunionDebounceTimer = setTimeout(async () => {
+    const currentVal = (document.getElementById('a-reunion').value || '').trim();
+    if (!currentVal){ wrap.style.display='none'; out.value=''; return; }
+
+    // ID de consulta para descartar respuestas antiguas
+    const mySeq = ++aReunionQuerySeq;
+    try{
+      const r = await apiGet('validarReunion', { reunion: currentVal });
+      if (mySeq !== aReunionQuerySeq) return; // llegó una respuesta vieja, descártala
+      out.value = r?.evento || '';
+      wrap.style.display = '';
+    }catch(_){}
+  }, 1250); // 1 segundo y cuarto
+});
 
 
     document.getElementById('a-guardar').addEventListener('click', async ()=>{
