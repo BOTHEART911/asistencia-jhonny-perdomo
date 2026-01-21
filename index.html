@@ -133,6 +133,17 @@
 .view > *:first-child{ margin-top: 0 !important; }
 .view > *:last-child{  margin-bottom: 0 !important; }
 .container{ padding-bottom: 0; }
+
+ /* Botón instalar PWA */
+  #btn-instalar{
+    border-radius:999px;
+    font-size:1rem;
+    padding:12px 18px;
+  }
+
+  @media (max-width:700px){
+    .btn-row{ flex-direction:column; }
+  }    
     
   </style>
 </head>
@@ -333,17 +344,23 @@
       </div>
     </section>
 
-    <!-- VISTA: INSTALAR (opcional con #instalar) -->
-    <section id="view-instalar" class="view">
-      <div class="install-wrap">
-        <h2 style="color:var(--primary); text-shadow: 0 2px 2px #031732; margin:0 0 8px;">Gestión de Asistencias</h2>
-        <img class="brand" alt="App" src="https://res.cloudinary.com/dqqeavica/image/upload/v1760659610/asistencia_hqnkyc.gif" />
-        <p class="tagline">Instala la App para una mejor experiencia</p>
-        <div class="btn-row spaced" style="max-width:420px; width:100%; justify-content:center;">
-          <button class="btn-primary" id="btn-instalar-standalone">Instalar la App 📲</button>
-        </div>
+    <!-- VISTA INSTALAR -->
+  <section id="view-instalar" class="view">
+    <div class="card narrow" style="text-align:center;">
+      <h2 style="color:var(--primary);">GESTIÓN DE ASISTENCIA</h2>
+      <img class="brand" alt="Instalar" src="https://res.cloudinary.com/dqqeavica/image/upload/v1760659610/asistencia_hqnkyc.gif" />
+      <p style="font-weight:600;">
+        Instala esta App en tu dispositivo para tener la mejor experiencia.
+      </p>
+      <div class="btn-row" style="justify-content:center; margin-top:12px;">
+        <button id="btn-instalar" class="btn-primary" style="display:none;">Instalar la App 📲</button>
       </div>
-    </section>
+      <p class="muted" style="margin-top:14px;">
+        Si ya instalaste la App y no se inicia automáticamente, refresca en unos segundos.
+      </p>
+    </div>
+  </section> 
+
 
     <!-- VISTA: ASISTENCIA -->
     <section id="view-asistencia" class="view">
@@ -374,9 +391,6 @@
       </div>
     </section>
   </div>
-
-  <!-- Botón PWA flotante (aparece cuando aplica) -->
-  <button id="pwa-install-btn" class="btn-primary">Instalar la App 📲</button>
 
   <script>
     // URL de tu Apps Script desplegado
@@ -733,127 +747,148 @@
     });
   </script>
 
-  <!-- PWA: instalación y registro de SW (no invasivo) -->
+ 
   <script>
-    (function(){
-      const installButtons = Array.from(document.querySelectorAll('#pwa-install-btn, #btn-instalar-standalone'));
-      let deferredPrompt = null;
+    /* ================== PWA AVANZADO ================== */
+let deferredPrompt = null;
+let __installStartShown = false;    // bandera: ya mostramos "App instalándose"
+let __installSuccessShown = false;  // bandera: ya mostramos "Instalación exitosa"
 
-      const isIOS = () => /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
-      const isStandalone = () =>
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: installed)').matches ||
-        (window.navigator.standalone === true);
-
-      function markInstalled(){ try{ localStorage.setItem('appInstalled','1'); }catch(_){ } }
-      function clearInstalledMark(){ try{ localStorage.removeItem('appInstalled'); }catch(_){ } }
-      function isMarkedInstalled(){ try{ return localStorage.getItem('appInstalled') === '1'; }catch(_){ return false; } }
-
-      async function detectInstalled(){
-        if (isStandalone()) return true;
-
-        const manifestLink = document.querySelector('link[rel="manifest"]');
-        const manifestHref = manifestLink ? new URL(manifestLink.getAttribute('href'), location.href).href : null;
-
-        if (typeof navigator.getInstalledRelatedApps === 'function' && manifestHref){
-          try{
-            const apps = await navigator.getInstalledRelatedApps();
-            const found = apps.some(a =>
-              a.platform === 'webapp' &&
-              typeof a.url === 'string' &&
-              a.url.replace(/#.*$/,'') === manifestHref.replace(/#.*$/,'')
-            );
-            if (found){
-              markInstalled();
-              return true;
-            } else {
-              clearInstalledMark();
-            }
-          }catch(_){}
-        }
-        return isMarkedInstalled();
-      }
-
-      function updateInstallButtonsVisibility(){
-        const shouldShow = !isStandalone() && !isMarkedInstalled() && (isIOS() || !!deferredPrompt);
-        installButtons.forEach(btn => { if (btn) btn.style.display = shouldShow ? '' : 'none'; });
-      }
-
-      window.addEventListener('beforeinstallprompt', (e)=>{
-        e.preventDefault();
-        deferredPrompt = e;
-        updateInstallButtonsVisibility();
-      });
-
-      window.addEventListener('appinstalled', ()=>{
+function isStandalone(){
+  const dmStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const dmInstalled  = window.matchMedia('(display-mode: installed)').matches;
+  const iosStandalone = (window.navigator.standalone === true);
+  return dmStandalone || dmInstalled || iosStandalone;
+}
+function isIOS(){
+  return /(iphone|ipad|ipod)/i.test(navigator.userAgent || '');
+}
+function isMarkedInstalled(){
+  try{ return localStorage.getItem('pwaInstalledFlag') === '1'; }catch(_){ return false; }
+}
+function markInstalled(){
+  try{ localStorage.setItem('pwaInstalledFlag', '1'); }catch(_){}
+}
+function clearInstalledMark(){
+  try{ localStorage.removeItem('pwaInstalledFlag'); }catch(_){}
+}
+async function detectInstalled(){
+  if (isStandalone()) return true;
+  if (typeof navigator.getInstalledRelatedApps === 'function'){
+    try{
+      const apps = await navigator.getInstalledRelatedApps();
+      const found = apps.some(a =>
+        a.platform === 'webapp' &&
+        typeof a.url === 'string' &&
+        /manifest\.webmanifest$/.test(a.url)
+      );
+      if (found){
         markInstalled();
-        updateInstallButtonsVisibility();
-        try{
-          if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalada!', timer:1800, showConfirmButton:false });
-        }catch(_){}
-      });
-
-      installButtons.forEach(btn => {
-        if (!btn) return;
-        btn.addEventListener('click', async ()=>{
-          if (isIOS()){
-            try{
-              if(window.Swal){
-                return Swal.fire({
-                  icon:'info',
-                  title:'Instalar en iPhone/iPad',
-                  html:'1) Toca Compartir (cuadro con flecha).<br>2) Elige "Agregar a pantalla de inicio".<br>3) Confirma "Agregar".'
-                });
-              }
-            }catch(_){}
-            return;
-          }
-          if (!deferredPrompt) return;
-          deferredPrompt.prompt();
-          const choice = await deferredPrompt.userChoice;
-          deferredPrompt = null;
-          if (choice && choice.outcome === 'accepted'){
-            markInstalled();
-            try{
-              if(window.Swal) Swal.fire({ icon:'success', title:'¡App instalándose!', timer:1800, showConfirmButton:false });
-            }catch(_){}
-          }
-          updateInstallButtonsVisibility();
-        });
-      });
-
-      if ('serviceWorker' in navigator){
-        window.addEventListener('load', ()=>{
-          navigator.serviceWorker.register('./sw.js').catch(()=>{});
-        });
+        return true;
+      } else {
+        clearInstalledMark();
       }
+    }catch(_){}
+  }
+  return isMarkedInstalled();
+}
+function updateInstallButtonsVisibility(){
+  const btn1 = document.getElementById('btn-instalar');
+  const canPrompt = !!deferredPrompt;
+  const installed = isMarkedInstalled() || isStandalone();
+  const shouldShow = !installed && (canPrompt || isIOS());
+  if(btn1) btn1.style.display = shouldShow ? '' : 'none';
+}
 
-      // Ruta #instalar: mostrar vista de instalación y redirigir a login si ya está instalada
-      (function(){
-        let installRedirectTimer = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  updateInstallButtonsVisibility();
+});
 
-        async function handleInstallRoute(){
-          if (location.hash !== '#instalar') return;
+window.addEventListener('appinstalled', ()=>{
+  markInstalled();
+  deferredPrompt = null;
+  updateInstallButtonsVisibility();
+});
 
-          showView('view-instalar');
+document.getElementById('btn-instalar').addEventListener('click', async ()=>{
+  // Flujo iOS: se respeta exactamente tu alerta e instrucciones
+  if(isIOS()){
+    Swal.fire({
+      icon:'info',
+      title: '¡Para Instalar en tu Iphone!',
+  html: `
+    <div style="text-align:center; margin-top:8px;">
+      <img
+        src="https://res.cloudinary.com/dqqeavica/image/upload/v1765745210/instalacion_ios_ysbhnd.gif"
+        alt="Instalación de IOS"
+        style="width:180px; max-width:70vw; height:auto; display:block; margin:0 auto 12px;"
+      >
+      <div style="margin-top:10px;">
+        <b>1.</b> Toca Compartir.<br><b>2.</b> Elige "Agregar a pantalla de inicio".<br><b>3.</b> Confirma "Agregar".
+      </div>
+    </div>
+  `,
+    });
+    return;
+  }
+  // Android: requiere beforeinstallprompt (deferredPrompt)
+  if(!deferredPrompt){
+    Swal.fire({icon:'info',title:'Instalación no disponible todavía'});
+    return;
+  }
 
-          if (installRedirectTimer){ clearTimeout(installRedirectTimer); installRedirectTimer = null; }
+  const dp = deferredPrompt;
+  dp.prompt();                           // muestra diálogo nativo de instalación
+  const choice = await dp.userChoice;    // espera la elección del usuario
+  deferredPrompt = null;                 // limpia el prompt (solo se usa una vez)
 
-          const installed = await detectInstalled();
-          if (installed){
-            installRedirectTimer = setTimeout(()=> showView('view-login'), 2000);
-          } else {
-            updateInstallButtonsVisibility();
-          }
-        }
+  if (choice.outcome === 'accepted'){
+    // Primera alerta (Android): confirma inicio de instalación por 6 segundos
+    markInstalled();
+    __installStartShown = true;
+    Swal.fire({
+  icon: 'success',
+  title: '¡App instalándose!',
+  html: `
+    <div style="text-align:center; margin-top:8px;">
+      <img
+        src="https://res.cloudinary.com/dqqeavica/image/upload/v1765740540/instalacion_lydtcl.gif"
+        alt="Instalando app"
+        style="width:180px; max-width:70vw; height:auto; display:block; margin:0 auto 12px;"
+      >
+      <div>Debes esperar unos segundos mientras el sistema instala la App.</div>
+      <div style="margin-top:10px;">
+        <b>Al desaparecer este aviso, puedes salir de esta vista. La App aparecerá en la pantalla principal de este dispositivo.</b>
+      </div>
+    </div>
+  `,
+  timer: 12000,
+  showConfirmButton: false
+});
+  } else {
+    Swal.fire({icon:'info',title:'Instalación cancelada'});
+  }
 
-        window.addEventListener('load', handleInstallRoute);
-        window.addEventListener('hashchange', handleInstallRoute);
-      })();
+  updateInstallButtonsVisibility();
+});
 
-      window.addEventListener('load', async ()=>{ await detectInstalled(); updateInstallButtonsVisibility(); });
-      window.addEventListener('pageshow', updateInstallButtonsVisibility);
-    })();
+async function initPWAVista(){
+  const installed = await detectInstalled();
+  if (installed){
+    showView('view-login');
+  } else {
+    showView('view-instalar');
+    updateInstallButtonsVisibility();
+  }
+}
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+window.addEventListener('load', initPWAVista);
   </script>
 </body>
 </html>
