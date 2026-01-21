@@ -1,32 +1,36 @@
 {
-  "id": "./",
-  "name": "Gestión de Asistencias",
-  "short_name": "Asistencias",
-  "start_url": "./",
-  "scope": "./",
+  "id": "/asistencia-jhonny-perdomo/",
+  "name": "GESTIÓN DE ASISTENCIAS",
+  "short_name": "ASISTENCIA",
+  "start_url": "/asistencia-jhonny-perdomo/",
+  "scope": "/asistencia-jhonny-perdomo/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007BFF",
   "capture_links": "existing-client-navigate",
   "launch_handler": { "client_mode": "navigate-existing" },
+
   "prefer_related_applications": false,
   "related_applications": [
     {
       "platform": "webapp",
       "url": "https://botheart911.github.io/asistencia-jhonny-perdomo/manifest.webmanifest",
-      "id": "./"
+      "id": "/asistencia-jhonny-perdomo/"
     }
   ],
+
   "icons": [
     {
       "src": "https://res.cloudinary.com/dqqeavica/image/upload/v1760659478/asistencia_ftmuye.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "https://res.cloudinary.com/dqqeavica/image/upload/v1760659478/asistencia_ftmuye.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
